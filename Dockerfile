@@ -1,4 +1,4 @@
-FROM ubuntu:xenial as openssl-build
+FROM ubuntu:bionic as openssl-build
 MAINTAINER Hans Rakers <h.rakers@global.leaseweb.com>
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -8,17 +8,20 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       file \
       g++ \
       gcc \
+      gnupg \
       libc-dev \
       make \
       pkg-config \
       re2c \
+      zlib1g-dev \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-RUN gpg --keyserver ha.pool.sks-keyservers.net --recv-keys 0E604491
+RUN mkdir ~/.gnupg && echo "disable-ipv6" >> ~/.gnupg/dirmngr.conf && \
+    gpg --keyserver ha.pool.sks-keyservers.net --recv-keys 0E604491
 
 # compile openssl, otherwise --with-openssl won't work
-RUN OPENSSL_VERSION="1.0.2p" \
+RUN OPENSSL_VERSION="1.0.2u" \
       && cd /tmp \
       && mkdir openssl \
       && curl -sL "https://www.openssl.org/source/openssl-$OPENSSL_VERSION.tar.gz" -o openssl.tar.gz \
@@ -26,19 +29,62 @@ RUN OPENSSL_VERSION="1.0.2p" \
       && gpg --verify openssl.tar.gz.asc \
       && tar -xzf openssl.tar.gz -C openssl --strip-components=1 \
       && cd /tmp/openssl \
-      && ./config && make -j$(nproc) && make install_sw \
+      && ./config no-ssl2 no-ssl3 zlib-dynamic -fPIC && make -j$(nproc) && make install_sw \
       && rm -rf /tmp/*
 
-FROM ubuntu:xenial as php-build
+FROM ubuntu:bionic as curl-build
 
 COPY --from=openssl-build "/usr/local/ssl/" "/usr/local/ssl/"
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      ca-certificates \
+      curl \
+      autoconf \
+      file \
+      g++ \
+      gcc \
+      gnupg \
+      libc-dev \
+      make \
+      pkg-config \
+      re2c \
+      zlib1g-dev \
+      libnghttp2-dev \
+      libpsl-dev \
+      libidn2-dev \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN mkdir ~/.gnupg && echo "disable-ipv6" >> ~/.gnupg/dirmngr.conf && \
+    gpg --keyserver ha.pool.sks-keyservers.net --recv-keys 5CC908FDB71E12C2
+
+RUN CURL_VERSION="7.71.1" \
+      && cd /tmp \
+      && mkdir curl \
+      && curl -sL "https://curl.haxx.se/download/curl-$CURL_VERSION.tar.gz" -o curl.tar.gz \
+      && curl -sL "https://curl.haxx.se/download/curl-$CURL_VERSION.tar.gz.asc" -o curl.tar.gz.asc \
+      && gpg --verify curl.tar.gz.asc \
+      && tar -xzf curl.tar.gz -C curl --strip-components=1 \
+      && cd /tmp/curl \
+      && ./configure --prefix=/usr/local/curl --disable-shared --enable-static --disable-dependency-tracking               \
+        --disable-symbol-hiding --enable-versioned-symbols      \
+        --disable-threaded-resolver --with-lber-lib=lber         \
+        --with-ssl=/usr/local/ssl \
+        --with-nghttp2 \
+        --disable-gssapi --disable-ldap --disable-ldaps --disable-libssh2 --disable-rtsp \
+      && make -j$(nproc) && make install \
+      && rm -rf /tmp/*
+
+FROM ubuntu:bionic as php-build
+
+COPY --from=openssl-build "/usr/local/ssl/" "/usr/local/ssl/"
+COPY --from=curl-build "/usr/local/curl/" "/usr/local/curl/"
 
 # persistent / runtime deps
 RUN apt-get update && apt-get install -y --no-install-recommends \
       ca-certificates \
       curl \
       librecode0 \
-      libmysqlclient-dev \
       libsqlite3-0 \
       libxml2 \
     && apt-get clean \
@@ -50,6 +96,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       file \
       g++ \
       gcc \
+      gnupg \
       libc-dev \
       make \
       pkg-config \
@@ -62,6 +109,7 @@ RUN mkdir -p $PHP_INI_DIR/conf.d
 
 ENV GPG_KEYS 0B96609E270F565C13292B24C13C70B87267B52D 0A95E9A026542D53835E3F3A7DEC4E69FC9C83D7
 RUN set -xe \
+  && mkdir ~/.gnupg && echo "disable-ipv6" >> ~/.gnupg/dirmngr.conf \
   && for key in $GPG_KEYS; do \
     gpg --keyserver ha.pool.sks-keyservers.net --recv-keys "$key"; \
   done
@@ -73,8 +121,10 @@ ENV PHP_VERSION 5.3.29
 RUN buildDeps=" \
                 autoconf2.13 \
                 libbz2-dev \
-                libcurl4-openssl-dev \
+                libidn2-dev \
                 libmcrypt-dev \
+                libnghttp2-dev \
+                libpsl-dev \
                 libreadline6-dev \
                 librecode-dev \
                 libsqlite3-dev \
@@ -98,9 +148,7 @@ RUN buildDeps=" \
             --with-fpm-user=www-data \
             --with-fpm-group=www-data \
             --disable-cgi \
-            --enable-mysqlnd \
-            --with-mysql \
-            --with-curl \
+            --with-curl=/usr/local/curl \
             --with-openssl=/usr/local/ssl \
             --with-readline \
             --with-recode \
@@ -109,7 +157,6 @@ RUN buildDeps=" \
             --with-gettext \
             --with-mcrypt \
             --with-mhash \
-            --with-pdo-mysql \
             --enable-bcmath \
             --enable-ftp \
             --enable-intl \
@@ -119,7 +166,7 @@ RUN buildDeps=" \
       && sed -i '/EXTRA_LIBS = /s|$| -lstdc++|' Makefile \
       && make -j$(nproc)
 
-FROM ubuntu:xenial
+FROM ubuntu:bionic
 
 # persistent / runtime deps
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -128,7 +175,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       libcurl3 \
       librecode0 \
       libmcrypt4 \
-      libmysqlclient-dev \
+      libreadline7 \
       libsqlite3-0 \
       libxml2 \
       make \
