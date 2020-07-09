@@ -66,9 +66,9 @@ RUN CURL_VERSION="7.71.1" \
       && gpg --verify curl.tar.gz.asc \
       && tar -xzf curl.tar.gz -C curl --strip-components=1 \
       && cd /tmp/curl \
-      && ./configure --prefix=/usr/local/curl --disable-shared --enable-static --disable-dependency-tracking               \
-        --disable-symbol-hiding --enable-versioned-symbols      \
-        --disable-threaded-resolver --with-lber-lib=lber         \
+      && ./configure --prefix=/usr/local/curl --disable-shared --enable-static --disable-dependency-tracking \
+        --disable-symbol-hiding --enable-versioned-symbols \
+        --disable-threaded-resolver --with-lber-lib=lber \
         --with-ssl=/usr/local/ssl \
         --with-nghttp2 \
         --disable-gssapi --disable-ldap --disable-ldaps --disable-libssh2 --disable-rtsp \
@@ -178,7 +178,7 @@ RUN set -eux \
             --with-mysql \
             --with-pdo-mysql \
             --with-pdo-sqlite=/usr \
-		        --with-sqlite3=/usr \
+            --with-sqlite3=/usr \
             --with-libedit \
             --with-zlib \
             --enable-bcmath \
@@ -203,9 +203,9 @@ COPY docker-php-* /usr/local/bin/
 # https://github.com/docker-library/php/pull/542
 RUN set -eux; \
 	{ \
-		echo 'Package: php*'; \
-		echo 'Pin: release *'; \
-		echo 'Pin-Priority: -1'; \
+          echo 'Package: php*'; \
+          echo 'Pin: release *'; \
+          echo 'Pin-Priority: -1'; \
 	} > /etc/apt/preferences.d/no-debian-php
 
 # persistent / runtime deps and deps required for compiling extensions
@@ -254,7 +254,7 @@ RUN set -eux; \
     make clean; \
     cp -v php.ini-* "$PHP_INI_DIR/"; \
     cd /; \
-	  docker-php-source delete; \
+    docker-php-source delete; \
     pecl update-channels; \
     rm -rf /tmp/pear ~/.pearrc; \
     php --version
@@ -287,8 +287,6 @@ RUN set -ex \
     echo '; if we send this to /proc/self/fd/1, it never appears'; \
     echo 'access.log = /proc/self/fd/2'; \
     echo; \
-    echo 'clear_env = no'; \
-		echo; \
     echo '; Ensure worker stdout and stderr are sent to the main error log.'; \
     echo 'catch_workers_output = yes'; \
   } | tee php-fpm.d/docker.conf \
