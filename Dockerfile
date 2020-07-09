@@ -1,7 +1,9 @@
 FROM ubuntu:bionic as openssl-build
 LABEL maintainer="Hans Rakers <h.rakers@global.leaseweb.com>"
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
       ca-certificates \
       curl \
       autoconf \
@@ -14,29 +16,35 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       pkg-config \
       re2c \
       zlib1g-dev \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+    ; \
+    apt-get clean; \
+    rm -rf /var/lib/apt/lists/*
 
-RUN mkdir ~/.gnupg && echo "disable-ipv6" >> ~/.gnupg/dirmngr.conf && \
+RUN set -eux; \
+    mkdir ~/.gnupg; \
+    echo "disable-ipv6" >> ~/.gnupg/dirmngr.conf; \
     gpg --keyserver ha.pool.sks-keyservers.net --recv-keys 0E604491
 
 # compile openssl, otherwise --with-openssl won't work
-RUN OPENSSL_VERSION="1.0.2u" \
-      && cd /tmp \
-      && mkdir openssl \
-      && curl -sL "https://www.openssl.org/source/openssl-$OPENSSL_VERSION.tar.gz" -o openssl.tar.gz \
-      && curl -sL "https://www.openssl.org/source/openssl-$OPENSSL_VERSION.tar.gz.asc" -o openssl.tar.gz.asc \
-      && gpg --verify openssl.tar.gz.asc \
-      && tar -xzf openssl.tar.gz -C openssl --strip-components=1 \
-      && cd /tmp/openssl \
-      && ./config no-ssl2 no-ssl3 zlib-dynamic -fPIC && make -j$(nproc) && make install_sw \
-      && rm -rf /tmp/*
+RUN set -eux; \
+    OPENSSL_VERSION="1.0.2u"; \
+    cd /tmp; \
+    mkdir openssl; \
+    curl -sL "https://www.openssl.org/source/openssl-$OPENSSL_VERSION.tar.gz" -o openssl.tar.gz; \
+    curl -sL "https://www.openssl.org/source/openssl-$OPENSSL_VERSION.tar.gz.asc" -o openssl.tar.gz.asc; \
+    gpg --verify openssl.tar.gz.asc; \
+    tar -xzf openssl.tar.gz -C openssl --strip-components=1; \
+    cd /tmp/openssl; \
+    ./config no-ssl2 no-ssl3 zlib-dynamic -fPIC && make -j$(nproc) && make install_sw; \
+    rm -rf /tmp/*
 
 FROM ubuntu:bionic as curl-build
 
 COPY --from=openssl-build "/usr/local/ssl/" "/usr/local/ssl/"
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
       ca-certificates \
       curl \
       autoconf \
@@ -52,28 +60,33 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       libnghttp2-dev \
       libpsl-dev \
       libidn2-dev \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+    ; \
+    apt-get clean; \
+    rm -rf /var/lib/apt/lists/*
 
-RUN mkdir ~/.gnupg && echo "disable-ipv6" >> ~/.gnupg/dirmngr.conf && \
+RUN set -eux; \
+    mkdir ~/.gnupg; \
+    echo "disable-ipv6" >> ~/.gnupg/dirmngr.conf; \
     gpg --keyserver ha.pool.sks-keyservers.net --recv-keys 5CC908FDB71E12C2
 
-RUN CURL_VERSION="7.71.1" \
-      && cd /tmp \
-      && mkdir curl \
-      && curl -sL "https://curl.haxx.se/download/curl-$CURL_VERSION.tar.gz" -o curl.tar.gz \
-      && curl -sL "https://curl.haxx.se/download/curl-$CURL_VERSION.tar.gz.asc" -o curl.tar.gz.asc \
-      && gpg --verify curl.tar.gz.asc \
-      && tar -xzf curl.tar.gz -C curl --strip-components=1 \
-      && cd /tmp/curl \
-      && ./configure --prefix=/usr/local/curl --disable-shared --enable-static --disable-dependency-tracking \
+RUN set -eux; \
+    CURL_VERSION="7.71.1"; \
+    cd /tmp; \
+    mkdir curl; \
+    curl -sL "https://curl.haxx.se/download/curl-$CURL_VERSION.tar.gz" -o curl.tar.gz; \
+    curl -sL "https://curl.haxx.se/download/curl-$CURL_VERSION.tar.gz.asc" -o curl.tar.gz.asc; \
+    gpg --verify curl.tar.gz.asc; \
+    tar -xzf curl.tar.gz -C curl --strip-components=1; \
+    cd /tmp/curl; \
+    ./configure --prefix=/usr/local/curl --disable-shared --enable-static --disable-dependency-tracking \
         --disable-symbol-hiding --enable-versioned-symbols \
         --disable-threaded-resolver --with-lber-lib=lber \
         --with-ssl=/usr/local/ssl \
         --with-nghttp2 \
-        --disable-gssapi --disable-ldap --disable-ldaps --disable-libssh2 --disable-rtsp \
-      && make -j$(nproc) && make install \
-      && rm -rf /tmp/*
+        --disable-gssapi --disable-ldap --disable-ldaps --disable-libssh2 --disable-rtsp; \
+    make -j$(nproc); \
+    make install; \
+    rm -rf /tmp/*
 
 FROM ubuntu:bionic as php-build
 
@@ -82,7 +95,9 @@ COPY --from=curl-build "/usr/local/curl/" "/usr/local/curl/"
 
 # build dependencies for php-5.3
 # php 5.3 needs older autoconf
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
       autoconf \
       autoconf2.13 \
       ca-certificates \
@@ -108,8 +123,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       re2c \
       xz-utils \
       zlib1g-dev \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+    ; \
+    apt-get clean; \
+    rm -rf /var/lib/apt/lists/*
 
 ENV PHP_INI_DIR /usr/local/etc/php
 
@@ -137,61 +153,61 @@ ENV PHP_LDFLAGS="-Wl,-O1 -pie"
 COPY docker-php-source /usr/local/bin/
 
 # --enable-mysqlnd is included below because it's harder to compile after the fact the extensions are (since it's a plugin for several extensions, not an extension in itself)
-RUN set -eux \
+RUN set -eux; \
       # Install MySQL 5.7 client library and headers (the system package is compiled against OpenSSL 1.1, which we can't use)
-      && cd /usr/src \
-      && curl -SL "http://mirror.nl.leaseweb.net/mysql/Downloads/MySQL-5.7/libmysqlclient-dev_5.7.30-1ubuntu18.04_amd64.deb" -o libmysqlclient-dev_5.7.30-1ubuntu18.04_amd64.deb \
-      && curl -SL "http://mirror.nl.leaseweb.net/mysql/Downloads/MySQL-5.7/libmysqlclient-dev_5.7.30-1ubuntu18.04_amd64.deb.asc" -o libmysqlclient-dev_5.7.30-1ubuntu18.04_amd64.deb.asc \
-      && curl -SL "http://mirror.nl.leaseweb.net/mysql/Downloads/MySQL-5.7/libmysqlclient20_5.7.30-1ubuntu18.04_amd64.deb" -o libmysqlclient20_5.7.30-1ubuntu18.04_amd64.deb \
-      && curl -SL "http://mirror.nl.leaseweb.net/mysql/Downloads/MySQL-5.7/libmysqlclient20_5.7.30-1ubuntu18.04_amd64.deb.asc" -o libmysqlclient20_5.7.30-1ubuntu18.04_amd64.deb.asc \
-      && curl -SL "http://mirror.nl.leaseweb.net/mysql/Downloads/MySQL-5.7/mysql-common_5.7.30-1ubuntu18.04_amd64.deb" -o mysql-common_5.7.30-1ubuntu18.04_amd64.deb \
-      && curl -SL "http://mirror.nl.leaseweb.net/mysql/Downloads/MySQL-5.7/mysql-common_5.7.30-1ubuntu18.04_amd64.deb.asc" -o mysql-common_5.7.30-1ubuntu18.04_amd64.deb.asc \
-      && gpg --verify libmysqlclient-dev_5.7.30-1ubuntu18.04_amd64.deb.asc \
-      && gpg --verify libmysqlclient20_5.7.30-1ubuntu18.04_amd64.deb.asc \
-      && gpg --verify mysql-common_5.7.30-1ubuntu18.04_amd64.deb.asc \
-      && dpkg -i libmysqlclient-dev_5.7.30-1ubuntu18.04_amd64.deb libmysqlclient20_5.7.30-1ubuntu18.04_amd64.deb mysql-common_5.7.30-1ubuntu18.04_amd64.deb \
-      && curl -SL "http://nl.php.net/get/php-$PHP_VERSION.tar.xz/from/this/mirror" -o php.tar.xz \
-      && curl -SL "http://nl.php.net/get/php-$PHP_VERSION.tar.xz.asc/from/this/mirror" -o php.tar.xz.asc \
-      && gpg --verify php.tar.xz.asc \
-      && docker-php-source extract \
-      && cd /usr/src/php \
-      && export \
+      cd /usr/src; \
+      curl -SL "http://mirror.nl.leaseweb.net/mysql/Downloads/MySQL-5.7/libmysqlclient-dev_5.7.30-1ubuntu18.04_amd64.deb" -o libmysqlclient-dev_5.7.30-1ubuntu18.04_amd64.deb; \
+      curl -SL "http://mirror.nl.leaseweb.net/mysql/Downloads/MySQL-5.7/libmysqlclient-dev_5.7.30-1ubuntu18.04_amd64.deb.asc" -o libmysqlclient-dev_5.7.30-1ubuntu18.04_amd64.deb.asc; \
+      curl -SL "http://mirror.nl.leaseweb.net/mysql/Downloads/MySQL-5.7/libmysqlclient20_5.7.30-1ubuntu18.04_amd64.deb" -o libmysqlclient20_5.7.30-1ubuntu18.04_amd64.deb; \
+      curl -SL "http://mirror.nl.leaseweb.net/mysql/Downloads/MySQL-5.7/libmysqlclient20_5.7.30-1ubuntu18.04_amd64.deb.asc" -o libmysqlclient20_5.7.30-1ubuntu18.04_amd64.deb.asc; \
+      curl -SL "http://mirror.nl.leaseweb.net/mysql/Downloads/MySQL-5.7/mysql-common_5.7.30-1ubuntu18.04_amd64.deb" -o mysql-common_5.7.30-1ubuntu18.04_amd64.deb; \
+      curl -SL "http://mirror.nl.leaseweb.net/mysql/Downloads/MySQL-5.7/mysql-common_5.7.30-1ubuntu18.04_amd64.deb.asc" -o mysql-common_5.7.30-1ubuntu18.04_amd64.deb.asc; \
+      gpg --verify libmysqlclient-dev_5.7.30-1ubuntu18.04_amd64.deb.asc; \
+      gpg --verify libmysqlclient20_5.7.30-1ubuntu18.04_amd64.deb.asc; \
+      gpg --verify mysql-common_5.7.30-1ubuntu18.04_amd64.deb.asc; \
+      dpkg -i libmysqlclient-dev_5.7.30-1ubuntu18.04_amd64.deb libmysqlclient20_5.7.30-1ubuntu18.04_amd64.deb mysql-common_5.7.30-1ubuntu18.04_amd64.deb; \
+      curl -SL "http://nl.php.net/get/php-$PHP_VERSION.tar.xz/from/this/mirror" -o php.tar.xz; \
+      curl -SL "http://nl.php.net/get/php-$PHP_VERSION.tar.xz.asc/from/this/mirror" -o php.tar.xz.asc; \
+      gpg --verify php.tar.xz.asc; \
+      docker-php-source extract; \
+      cd /usr/src/php; \
+      export \
         CFLAGS="$PHP_CFLAGS" \
         CPPFLAGS="$PHP_CPPFLAGS" \
-        LDFLAGS="$PHP_LDFLAGS" \
-      && ./configure \
-            --with-config-file-path="$PHP_INI_DIR" \
-            --with-config-file-scan-dir="$PHP_INI_DIR/conf.d" \
-            --enable-fpm \
-            --with-fpm-user=www-data \
-            --with-fpm-group=www-data \
-            --disable-cgi \
-            --with-curl=/usr/local/curl \
-            --with-openssl=/usr/local/ssl \
-            --with-readline \
-            --with-recode \
-            --with-zlib \
-            --with-bz2 \
-            --with-gettext \
-            --with-mcrypt \
-            --with-mhash \
-            --with-mysql \
-            --with-pdo-mysql \
-            --with-pdo-sqlite=/usr \
-            --with-sqlite3=/usr \
-            --with-libedit \
-            --with-zlib \
-            --enable-bcmath \
-            --enable-ftp \
-            --enable-intl \
-            --enable-mbstring \
-            --enable-mysqlnd \
-            --enable-soap \
-            --enable-zip \
-            ${PHP_EXTRA_CONFIGURE_ARGS:-} \
-      && sed -i '/EXTRA_LIBS = /s|$| -lstdc++|' Makefile \
-      && make -j$(nproc) \
-      && find -type f -name '*.a' -delete
+        LDFLAGS="$PHP_LDFLAGS"; \
+      ./configure \
+          --with-config-file-path="$PHP_INI_DIR" \
+          --with-config-file-scan-dir="$PHP_INI_DIR/conf.d" \
+          --enable-fpm \
+          --with-fpm-user=www-data \
+          --with-fpm-group=www-data \
+          --disable-cgi \
+          --with-curl=/usr/local/curl \
+          --with-openssl=/usr/local/ssl \
+          --with-readline \
+          --with-recode \
+          --with-zlib \
+          --with-bz2 \
+          --with-gettext \
+          --with-mcrypt \
+          --with-mhash \
+          --with-mysql \
+          --with-pdo-mysql \
+          --with-pdo-sqlite=/usr \
+          --with-sqlite3=/usr \
+          --with-libedit \
+          --with-zlib \
+          --enable-bcmath \
+          --enable-ftp \
+          --enable-intl \
+          --enable-mbstring \
+          --enable-mysqlnd \
+          --enable-soap \
+          --enable-zip \
+          ${PHP_EXTRA_CONFIGURE_ARGS:-}; \
+      sed -i '/EXTRA_LIBS = /s|$| -lstdc++|' Makefile; \
+      make -j$(nproc); \
+      find -type f -name '*.a' -delete
 
 FROM ubuntu:bionic
 
@@ -209,7 +225,9 @@ RUN set -eux; \
 	} > /etc/apt/preferences.d/no-debian-php
 
 # persistent / runtime deps and deps required for compiling extensions
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
       autoconf \
       binutils \
       ca-certificates \
@@ -232,12 +250,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       pkg-config \
       re2c \
       xz-utils \
+    ; \
     # Install MySQL 5.7 client library and headers (the system package is compiled against OpenSSL 1.1)
-    && cd /usr/src \
-    && dpkg -i libmysqlclient20_5.7.30-1ubuntu18.04_amd64.deb mysql-common_5.7.30-1ubuntu18.04_amd64.deb \
-    && rm /usr/src/*amd64.deb* \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+    cd /usr/src; \
+    dpkg -i libmysqlclient20_5.7.30-1ubuntu18.04_amd64.deb mysql-common_5.7.30-1ubuntu18.04_amd64.deb; \
+    rm /usr/src/*amd64.deb*; \
+    apt-get clean; \
+    rm -rf /var/lib/apt/lists/*
 
 ENV PHP_INI_DIR /usr/local/etc/php
 
@@ -262,11 +281,11 @@ RUN set -eux; \
 ENTRYPOINT ["docker-php-entrypoint"]
 WORKDIR /var/www/html
 
-RUN set -ex \
-  && rm -f /usr/local/bin/phar \
-  && ln -s /usr/local/bin/phar.phar /usr/local/bin/phar \
-  && cd /usr/local/etc \
-  && if [ -d php-fpm.d ]; then \
+RUN set -eux; \
+  rm -f /usr/local/bin/phar; \
+  ln -s /usr/local/bin/phar.phar /usr/local/bin/phar; \
+  cd /usr/local/etc; \
+  if [ -d php-fpm.d ]; then \
     # for some reason, upstream's php-fpm.conf.default has "include=NONE/etc/php-fpm.d/*.conf"
     sed 's!=NONE/!=!g' php-fpm.conf.default | tee php-fpm.conf > /dev/null; \
     cp php-fpm.d/www.conf.default php-fpm.d/www.conf; \
@@ -278,8 +297,8 @@ RUN set -ex \
       echo '[global]'; \
       echo 'include=etc/php-fpm.d/*.conf'; \
     } | tee php-fpm.conf; \
-  fi \
-  && { \
+  fi; \
+  { \
     echo '[global]'; \
     echo 'error_log = /proc/self/fd/2'; \
     echo; \
@@ -289,8 +308,8 @@ RUN set -ex \
     echo; \
     echo '; Ensure worker stdout and stderr are sent to the main error log.'; \
     echo 'catch_workers_output = yes'; \
-  } | tee php-fpm.d/docker.conf \
-  && { \
+  } | tee php-fpm.d/docker.conf; \
+  { \
     echo '[global]'; \
     echo 'daemonize = no'; \
     echo; \
