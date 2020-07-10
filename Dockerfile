@@ -168,6 +168,9 @@ RUN set -eux; \
       dpkg -i libmysqlclient-dev_5.7.30-1ubuntu18.04_amd64.deb libmysqlclient20_5.7.30-1ubuntu18.04_amd64.deb mysql-common_5.7.30-1ubuntu18.04_amd64.deb; \
       curl -SL "http://nl.php.net/get/php-$PHP_VERSION.tar.xz/from/this/mirror" -o php.tar.xz; \
       curl -SL "http://nl.php.net/get/php-$PHP_VERSION.tar.xz.asc/from/this/mirror" -o php.tar.xz.asc; \
+      # This patch removes the GLOB_NOSORT flag from the glob() call in sapi/fpm/fpm/fpm_conf.c
+      # Without this, the read order of fpm config files is completely random. See https://bugs.php.net/bug.php?id=68391
+      curl -SL "https://github.com/php/php-src/commit/29d2c13809247dfd21b1f20d1d3771e10590694e.diff" -o fpm_conf_glob_sort.patch; \
       gpg --verify php.tar.xz.asc; \
       docker-php-source extract; \
       cd /usr/src/php; \
@@ -316,9 +319,6 @@ RUN set -eux; \
     echo '[www]'; \
     echo 'listen = 9000'; \
   } | tee php-fpm.d/zz-docker.conf
-
-# fix some weird corruption in this file
-RUN sed -i -e "" /usr/local/etc/php-fpm.d/www.conf
 
 # Override stop signal to stop process gracefully
 # https://github.com/php/php-src/blob/17baa87faddc2550def3ae7314236826bc1b1398/sapi/fpm/php-fpm.8.in#L163
