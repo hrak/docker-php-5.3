@@ -261,7 +261,8 @@ RUN set -eux; \
     apt-get clean; \
     rm -rf /var/lib/apt/lists/*
 
-ENV PHP_INI_DIR /usr/local/etc/php
+ENV PHP_INI_DIR="/usr/local/etc/php" \
+    PHP_FPM_LISTEN=9000
 
 RUN set -eux; \
     mkdir -p "$PHP_INI_DIR/conf.d"; \
@@ -317,7 +318,7 @@ RUN set -eux; \
     echo 'daemonize = no'; \
     echo; \
     echo '[www]'; \
-    echo 'listen = 9000'; \
+    echo 'listen = ${PHP_FPM_LISTEN}'; \
   } | tee php-fpm.d/zz-docker.conf
 
 # Override stop signal to stop process gracefully
