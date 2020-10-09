@@ -279,6 +279,11 @@ RUN set -eux; \
     cd /; \
     docker-php-source delete; \
     pecl update-channels; \
+    # This solves the "not a valid package archive" errors
+    pear upgrade -Z Archive_Tar; \
+    # Install Zend Opcache
+    pecl install zendopcache; \
+    docker-php-ext-enable opcache; \
     rm -rf /tmp/pear ~/.pearrc; \
     php --version
 
