@@ -156,16 +156,16 @@ COPY docker-php-source /usr/local/bin/
 RUN set -eux; \
       # Install MySQL 5.7 client library and headers (the system package is compiled against OpenSSL 1.1, which we can't use)
       cd /usr/src; \
-      curl -SL "http://mirror.nl.leaseweb.net/mysql/Downloads/MySQL-5.7/libmysqlclient-dev_5.7.33-1ubuntu18.04_amd64.deb" -o libmysqlclient-dev_5.7.33-1ubuntu18.04_amd64.deb; \
-      curl -SL "http://mirror.nl.leaseweb.net/mysql/Downloads/MySQL-5.7/libmysqlclient-dev_5.7.33-1ubuntu18.04_amd64.deb.asc" -o libmysqlclient-dev_5.7.33-1ubuntu18.04_amd64.deb.asc; \
-      curl -SL "http://mirror.nl.leaseweb.net/mysql/Downloads/MySQL-5.7/libmysqlclient20_5.7.33-1ubuntu18.04_amd64.deb" -o libmysqlclient20_5.7.33-1ubuntu18.04_amd64.deb; \
-      curl -SL "http://mirror.nl.leaseweb.net/mysql/Downloads/MySQL-5.7/libmysqlclient20_5.7.33-1ubuntu18.04_amd64.deb.asc" -o libmysqlclient20_5.7.33-1ubuntu18.04_amd64.deb.asc; \
-      curl -SL "http://mirror.nl.leaseweb.net/mysql/Downloads/MySQL-5.7/mysql-common_5.7.33-1ubuntu18.04_amd64.deb" -o mysql-common_5.7.33-1ubuntu18.04_amd64.deb; \
-      curl -SL "http://mirror.nl.leaseweb.net/mysql/Downloads/MySQL-5.7/mysql-common_5.7.33-1ubuntu18.04_amd64.deb.asc" -o mysql-common_5.7.33-1ubuntu18.04_amd64.deb.asc; \
-      gpg --verify libmysqlclient-dev_5.7.33-1ubuntu18.04_amd64.deb.asc; \
-      gpg --verify libmysqlclient20_5.7.33-1ubuntu18.04_amd64.deb.asc; \
-      gpg --verify mysql-common_5.7.33-1ubuntu18.04_amd64.deb.asc; \
-      dpkg -i libmysqlclient-dev_5.7.33-1ubuntu18.04_amd64.deb libmysqlclient20_5.7.33-1ubuntu18.04_amd64.deb mysql-common_5.7.33-1ubuntu18.04_amd64.deb; \
+      curl -SL "http://mirror.nl.leaseweb.net/mysql/Downloads/MySQL-5.7/libmysqlclient-dev_5.7.36-1ubuntu18.04_amd64.deb" -o libmysqlclient-dev_5.7.36-1ubuntu18.04_amd64.deb; \
+      curl -SL "http://mirror.nl.leaseweb.net/mysql/Downloads/MySQL-5.7/libmysqlclient-dev_5.7.36-1ubuntu18.04_amd64.deb.asc" -o libmysqlclient-dev_5.7.36-1ubuntu18.04_amd64.deb.asc; \
+      curl -SL "http://mirror.nl.leaseweb.net/mysql/Downloads/MySQL-5.7/libmysqlclient20_5.7.36-1ubuntu18.04_amd64.deb" -o libmysqlclient20_5.7.36-1ubuntu18.04_amd64.deb; \
+      curl -SL "http://mirror.nl.leaseweb.net/mysql/Downloads/MySQL-5.7/libmysqlclient20_5.7.36-1ubuntu18.04_amd64.deb.asc" -o libmysqlclient20_5.7.36-1ubuntu18.04_amd64.deb.asc; \
+      curl -SL "http://mirror.nl.leaseweb.net/mysql/Downloads/MySQL-5.7/mysql-common_5.7.36-1ubuntu18.04_amd64.deb" -o mysql-common_5.7.36-1ubuntu18.04_amd64.deb; \
+      curl -SL "http://mirror.nl.leaseweb.net/mysql/Downloads/MySQL-5.7/mysql-common_5.7.36-1ubuntu18.04_amd64.deb.asc" -o mysql-common_5.7.36-1ubuntu18.04_amd64.deb.asc; \
+      gpg --verify libmysqlclient-dev_5.7.36-1ubuntu18.04_amd64.deb.asc; \
+      gpg --verify libmysqlclient20_5.7.36-1ubuntu18.04_amd64.deb.asc; \
+      gpg --verify mysql-common_5.7.36-1ubuntu18.04_amd64.deb.asc; \
+      dpkg -i libmysqlclient-dev_5.7.36-1ubuntu18.04_amd64.deb libmysqlclient20_5.7.36-1ubuntu18.04_amd64.deb mysql-common_5.7.36-1ubuntu18.04_amd64.deb; \
       curl -SL "http://nl.php.net/get/php-$PHP_VERSION.tar.xz/from/this/mirror" -o php.tar.xz; \
       curl -SL "http://nl.php.net/get/php-$PHP_VERSION.tar.xz.asc/from/this/mirror" -o php.tar.xz.asc; \
       # This patch removes the GLOB_NOSORT flag from the glob() call in sapi/fpm/fpm/fpm_conf.c
@@ -256,7 +256,7 @@ RUN set -eux; \
     ; \
     # Install MySQL 5.7 client library and headers (the system package is compiled against OpenSSL 1.1)
     cd /usr/src; \
-    dpkg -i libmysqlclient20_5.7.33-1ubuntu18.04_amd64.deb mysql-common_5.7.33-1ubuntu18.04_amd64.deb; \
+    dpkg -i libmysqlclient20_5.7.36-1ubuntu18.04_amd64.deb mysql-common_5.7.36-1ubuntu18.04_amd64.deb; \
     rm /usr/src/*amd64.deb*; \
     apt-get clean; \
     rm -rf /var/lib/apt/lists/*
